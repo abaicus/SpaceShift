@@ -95,6 +95,7 @@ final class HotkeyEngine: @unchecked Sendable {
             guard hasControl, !hasOtherModifiers, keyCode == 123 || keyCode == 124 else {
                 return Unmanaged.passUnretained(event)
             }
+            if isLeftButtonHeld { return Unmanaged.passUnretained(event) }
             if type == .keyDown { switchSpace(keyCode == 123 ? .left : .right) }
             return nil
         }
@@ -116,6 +117,7 @@ final class HotkeyEngine: @unchecked Sendable {
             }
             switch event.getIntegerValueField(Self.gesturePhase) {
             case 1:
+                if isLeftButtonHeld { return Unmanaged.passUnretained(event) }
                 swipeTracking = true
                 swipeFired = false
                 return nil
@@ -130,6 +132,7 @@ final class HotkeyEngine: @unchecked Sendable {
                 return swipeTracking ? nil : Unmanaged.passUnretained(event)
             case 4:
                 let wasTracking = swipeTracking
+                if !wasTracking { return Unmanaged.passUnretained(event) }
                 if swipeTracking && !swipeFired {
                     let originalVelocity = event.getDoubleValueField(Self.swipeVelocityX)
                     if originalVelocity != 0 {
@@ -150,6 +153,7 @@ final class HotkeyEngine: @unchecked Sendable {
                 }
                 return nil
             case 8:
+                if !swipeTracking { return Unmanaged.passUnretained(event) }
                 swipeTracking = false
                 swipeFired = false
                 return nil
@@ -159,6 +163,11 @@ final class HotkeyEngine: @unchecked Sendable {
         }
 
         return swipeTracking ? nil : Unmanaged.passUnretained(event)
+    }
+
+    // Only macOS's own switch carries a dragged window, so step aside during a drag.
+    private var isLeftButtonHeld: Bool {
+        CGEventSource.buttonState(.combinedSessionState, button: .left)
     }
 
     private func physicalDirection(for value: Double) -> Direction {
