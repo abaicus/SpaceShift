@@ -4,7 +4,7 @@ set -euo pipefail
 
 project_dir="${0:A:h:h}"
 configuration="${1:-release}"
-app_dir="$project_dir/dist/SpaceShift.app"
+app_dir="$project_dir/dist/Dă-i.app"
 cache_dir="$project_dir/.cache/clang"
 scratch_dir="$project_dir/.build"
 
@@ -32,13 +32,13 @@ swift build -c "$configuration" --disable-sandbox --scratch-path "$scratch_dir"
 
 binary_path="$(swift build -c "$configuration" --disable-sandbox --scratch-path "$scratch_dir" --show-bin-path)/SpaceShift"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
-cp "$binary_path" "$app_dir/Contents/MacOS/SpaceShift"
+cp "$binary_path" "$app_dir/Contents/MacOS/da-i"
 cp "$project_dir/Resources/Info.plist" "$app_dir/Contents/Info.plist"
-cp "$project_dir/Resources/SpaceShift.icns" "$app_dir/Contents/Resources/SpaceShift.icns"
+cp "$project_dir/Resources/da-i.icns" "$app_dir/Contents/Resources/da-i.icns"
 cp "$project_dir/LICENSE" "$app_dir/Contents/Resources/LICENSE"
 cp "$project_dir/THIRD_PARTY_NOTICES.md" "$app_dir/Contents/Resources/THIRD_PARTY_NOTICES.md"
 
-strip -x "$app_dir/Contents/MacOS/SpaceShift"
+strip -x "$app_dir/Contents/MacOS/da-i"
 
 sign_identity="${SIGN_IDENTITY:--}"
 if [[ "$sign_identity" == "-" ]]; then

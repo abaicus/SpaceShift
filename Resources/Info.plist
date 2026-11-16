@@ -5,27 +5,27 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>SpaceShift</string>
+    <string>Dă-i</string>
     <key>CFBundleExecutable</key>
-    <string>SpaceShift</string>
+    <string>da-i</string>
     <key>CFBundleIdentifier</key>
-    <string>local.spaceshift.app</string>
+    <string>local.da-i.app</string>
     <key>CFBundleIconFile</key>
-    <string>SpaceShift</string>
+    <string>da-i</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026 ReutS1 · GNU GPL v3.0</string>
+    <string>Copyright © 2026 ReutS1 and contributors · GNU GPL v3.0</string>
     <key>CFBundleName</key>
-    <string>SpaceShift</string>
+    <string>Dă-i</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.5</string>
+    <string>3.0</string>
     <key>CFBundleVersion</key>
-    <string>10</string>
+    <string>11</string>
     <key>NSAccessibilityUsageDescription</key>
-    <string>SpaceShift intercepts keyboard and trackpad Space switching to replay the native animation at your chosen speed.</string>
+    <string>Dă-i reads your shortcuts and trackpad gestures to speed up Space switching and trigger Smart Zoom.</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>

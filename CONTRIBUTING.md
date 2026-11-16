@@ -1,6 +1,6 @@
-# Contributing to SpaceShift
+# Contributing to Dă-i
 
-Thank you for helping improve SpaceShift.
+Thank you for helping improve Dă-i.
 
 ## Before opening an issue
 
@@ -14,10 +14,10 @@ Build and launch a release configuration with:
 
 ```sh
 ./scripts/build-app.sh release
-open dist/SpaceShift.app
+open dist/Dă-i.app
 ```
 
-SpaceShift requires Accessibility permission to intercept supported keyboard and trackpad events. A rebuilt executable may need permission granted again.
+Dă-i requires Accessibility permission to intercept supported keyboard and trackpad events. A rebuilt executable may need permission granted again.
 
 ## Pull requests
 

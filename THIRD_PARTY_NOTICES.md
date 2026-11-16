@@ -1,9 +1,6 @@
 # Third-party notices
 
-SpaceShift includes software distributed under the following license.
-
-The release tooling also vendors create-dmg 1.3.0. Its full MIT license is
-preserved at `scripts/vendor/create-dmg/LICENSE` in the developer source package.
+Dă-i includes software distributed under the following license.
 
 MIT License
 
@@ -27,7 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-SpaceShift's macOS 27 IOHID payload handling is based on joshuarli/iss,
+Dă-i's macOS 27 IOHID payload handling is based on joshuarli/iss,
 distributed under the Zero-Clause BSD license:
 
 Copyright (c) 2026 joshuarli

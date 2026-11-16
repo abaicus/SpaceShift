@@ -1,11 +1,11 @@
 name: Bug report
-description: Report a reproducible problem in SpaceShift.
+description: Report a reproducible problem in Dă-i.
 title: "[Bug]: "
 labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: Thanks for helping improve SpaceShift. Please do not include private information or credentials.
+      value: Thanks for helping improve Dă-i. Please do not include private information or credentials.
   - type: input
     id: macos
     attributes:
@@ -32,7 +32,7 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Open SpaceShift
+        1. Open Dă-i
         2. Set speed to ...
         3. Press ...
     validations:

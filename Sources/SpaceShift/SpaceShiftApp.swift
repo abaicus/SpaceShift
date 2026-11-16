@@ -3,9 +3,28 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        let center = NotificationCenter.default
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.willCloseNotification] {
+            center.addObserver(self, selector: #selector(windowsChanged(_:)), name: name, object: nil)
+        }
+        updateActivationPolicy(closing: nil)
+    }
+
+    @objc private func windowsChanged(_ notification: Notification) {
+        let closing = notification.name == NSWindow.willCloseNotification ? notification.object as? NSWindow : nil
+        updateActivationPolicy(closing: closing)
+    }
+
+    /// Appears in the Dock and Command-Tab only while one of its windows is open.
+    private func updateActivationPolicy(closing: NSWindow?) {
+        let hasWindow = NSApp.windows.contains {
+            $0 !== closing && $0.isVisible && $0.styleMask.contains(.titled) && !($0 is NSPanel)
+        }
+        let policy: NSApplication.ActivationPolicy = hasWindow ? .regular : .accessory
+        if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
     }
 }
 
@@ -14,96 +33,45 @@ struct SpaceShiftApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var controller = MotionController()
     @StateObject private var launchAtLogin = LaunchAtLoginManager()
+    @StateObject private var keepAwake = KeepAwakeManager()
+
+    init() {
+        MotionController.migrateLegacySettings()
+    }
 
     var body: some Scene {
-        WindowGroup("SpaceShift", id: "main") {
-            ContentView(controller: controller, launchAtLogin: launchAtLogin)
-                .frame(width: 480)
+        WindowGroup("Dă-i", id: "main") {
+            ContentView(controller: controller, launchAtLogin: launchAtLogin, keepAwake: keepAwake)
+                .frame(width: 460)
+                .preferredColorScheme(.dark)
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .commands {
+            CommandGroup(replacing: .appInfo) { AboutCommand() }
+            CommandGroup(replacing: .appSettings) { SettingsCommand() }
+        }
+
+        Window("Settings", id: "settings") {
+            SettingsView(controller: controller, launchAtLogin: launchAtLogin, keepAwake: keepAwake)
+                .preferredColorScheme(.dark)
         }
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
 
-        Window("Donate", id: "donate") {
-            DonationView()
-                .frame(width: 420)
+        Window("About Dă-i", id: "about") {
+            AboutView()
+                .preferredColorScheme(.dark)
         }
         .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
 
         MenuBarExtra {
-            MenuBarView(controller: controller, launchAtLogin: launchAtLogin)
+            StatusPanel(controller: controller, keepAwake: keepAwake)
         } label: {
-            Image(systemName: "rectangle.2.swap")
-                .accessibilityLabel("SpaceShift")
+            Image(systemName: "chevron.right.2")
+                .accessibilityLabel("Dă-i")
         }
-        .menuBarExtraStyle(.menu)
-    }
-}
-
-private struct MenuBarView: View {
-    @ObservedObject var controller: MotionController
-    @ObservedObject var launchAtLogin: LaunchAtLoginManager
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        Toggle("Enabled", isOn: $controller.isEnabled)
-
-        Toggle("Launch at Login", isOn: Binding(
-            get: { launchAtLogin.isEnabled },
-            set: { launchAtLogin.setEnabled($0) }
-        ))
-
-        Menu("Speed  \(controller.approximateMultiplier)") {
-            speedButton("1×", 40)
-            speedButton("1.5×", 60)
-            speedButton("2×", 80)
-            speedButton("2.5×", 100)
-        }
-
-        Divider()
-
-        Button("Test Right") { controller.testRight() }
-            .disabled(!controller.isRunning)
-
-        Button("Open SpaceShift…") {
-            openWindow(id: "main")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-
-        Button("About SpaceShift") {
-            let sourceText = "github.com/ReutS1/SpaceShift"
-            let credits = NSMutableAttributedString(
-                string: "Licensed under GNU GPL v3.0.\nSource code: \(sourceText)"
-            )
-            credits.addAttribute(
-                .link,
-                value: URL(string: "https://github.com/ReutS1/SpaceShift")!,
-                range: (credits.string as NSString).range(of: sourceText)
-            )
-            NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
-            NSApp.activate(ignoringOtherApps: true)
-        }
-
-        Button("Donate ☕️") {
-            openWindow(id: "donate")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-
-        Divider()
-
-        Button("Quit SpaceShift") { NSApp.terminate(nil) }
-            .keyboardShortcut("q")
-    }
-
-    @ViewBuilder
-    private func speedButton(_ title: String, _ value: Double) -> some View {
-        Button {
-            controller.setPreset(value)
-        } label: {
-            if abs(controller.speed - value) < 1 {
-                Label(title, systemImage: "checkmark")
-            } else {
-                Text(title)
-            }
-        }
+        .menuBarExtraStyle(.window)
     }
 }

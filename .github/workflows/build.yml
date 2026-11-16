@@ -24,4 +24,4 @@ jobs:
         run: ./scripts/build-app.sh release
 
       - name: Verify application signature
-        run: codesign --verify --deep --strict dist/SpaceShift.app
+        run: codesign --verify --deep --strict dist/Dă-i.app

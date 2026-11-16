@@ -16,6 +16,27 @@ final class HotkeyEngine: @unchecked Sendable {
     private var swipeFired = false
     private(set) var isRunning = false
     var velocity: Double = 60
+    /// When false the tap only serves Smart Zoom and leaves Space switching to macOS.
+    var acceleratesSpaces = true {
+        didSet {
+            swipeTracking = false
+            swipeFired = false
+        }
+    }
+    var smartZoomShortcut: SmartZoomShortcut? {
+        didSet { resetSmartZoomState() }
+    }
+    private var smartZoomHeld = false
+    private var lastTapTime: TimeInterval = 0
+    private var modifierDownTime: TimeInterval = 0
+    private var previousModifiers: UInt64 = 0
+
+    private func resetSmartZoomState() {
+        smartZoomHeld = false
+        lastTapTime = 0
+        modifierDownTime = 0
+        previousModifiers = 0
+    }
 
     private var requiresIOHIDPayload: Bool {
         ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27
@@ -25,6 +46,11 @@ final class HotkeyEngine: @unchecked Sendable {
         guard !isRunning else { return true }
         let mask = CGEventMask(1) << CGEventType.keyDown.rawValue
             | CGEventMask(1) << CGEventType.keyUp.rawValue
+            | CGEventMask(1) << CGEventType.flagsChanged.rawValue
+            | CGEventMask(1) << CGEventType.leftMouseDown.rawValue
+            | CGEventMask(1) << CGEventType.rightMouseDown.rawValue
+            | CGEventMask(1) << CGEventType.otherMouseDown.rawValue
+            | CGEventMask(1) << CGEventType.otherMouseUp.rawValue
             | CGEventMask(1) << 29
             | CGEventMask(1) << 30
         let context = Unmanaged.passUnretained(self).toOpaque()
@@ -57,6 +83,7 @@ final class HotkeyEngine: @unchecked Sendable {
     func stop() {
         swipeTracking = false
         swipeFired = false
+        resetSmartZoomState()
         if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: false) }
         if let runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
@@ -80,11 +107,112 @@ final class HotkeyEngine: @unchecked Sendable {
         postSwipe(phase: 4, sign: sign)
     }
 
+    /// Toggles the same content-aware zoom as a two-finger double-tap,
+    /// delivered to the window under the pointer.
+    func smartZoom() {
+        guard let event = CGEvent(source: nil) else { return }
+        event.setIntegerValueField(Self.eventTypeField, value: 29)
+        event.setIntegerValueField(Self.gestureHIDType, value: 22)
+        event.post(tap: .cghidEventTap)
+    }
+
+    private func consumeForSmartZoom(type: CGEventType, event: CGEvent) -> Bool {
+        guard let shortcut = smartZoomShortcut else { return false }
+        let modifiers = event.flags.rawValue & SmartZoomShortcut.modifierMask
+
+        switch shortcut.kind {
+        case .key, .mouseButton:
+            let code: Int64
+            let isDown: Bool
+            switch (type, shortcut.kind) {
+            case (.keyDown, .key), (.keyUp, .key):
+                code = event.getIntegerValueField(.keyboardEventKeycode)
+                isDown = type == .keyDown
+            case (.otherMouseDown, .mouseButton), (.otherMouseUp, .mouseButton):
+                code = event.getIntegerValueField(.mouseEventButtonNumber)
+                isDown = type == .otherMouseDown
+            default:
+                return false
+            }
+            guard code == shortcut.code else { return false }
+
+            // Swallow the release even if the modifiers were let go first.
+            if !isDown {
+                defer { smartZoomHeld = false }
+                return smartZoomHeld
+            }
+            guard modifiers == shortcut.modifiers else { return false }
+            if !smartZoomHeld { smartZoom() }
+            smartZoomHeld = true
+            return true
+
+        case .doubleKey:
+            guard type == .keyDown || type == .keyUp else {
+                if type != .flagsChanged { lastTapTime = 0 }
+                return false
+            }
+            let matches = event.getIntegerValueField(.keyboardEventKeycode) == shortcut.code
+            if type == .keyUp {
+                guard matches, smartZoomHeld else { return false }
+                smartZoomHeld = false
+                return true
+            }
+            guard matches, modifiers == 0 else {
+                lastTapTime = 0
+                return false
+            }
+            if event.getIntegerValueField(.keyboardEventAutorepeat) != 0 { return smartZoomHeld }
+
+            // The first press still reaches the app; only the second is swallowed.
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - lastTapTime < SmartZoomShortcut.doubleTapInterval {
+                lastTapTime = 0
+                smartZoomHeld = true
+                smartZoom()
+                return true
+            }
+            lastTapTime = now
+            return false
+
+        case .doubleModifier:
+            guard type == .flagsChanged else {
+                // Any key or click in between means the modifier was used, not tapped.
+                if type != .keyUp && type != .otherMouseUp {
+                    modifierDownTime = 0
+                    lastTapTime = 0
+                }
+                return false
+            }
+            defer { previousModifiers = modifiers }
+            let now = ProcessInfo.processInfo.systemUptime
+
+            if previousModifiers == 0, modifiers == shortcut.modifiers {
+                modifierDownTime = now
+            } else if modifiers == 0, previousModifiers == shortcut.modifiers,
+                      now - modifierDownTime < SmartZoomShortcut.doubleTapInterval {
+                modifierDownTime = 0
+                if now - lastTapTime < SmartZoomShortcut.doubleTapInterval {
+                    lastTapTime = 0
+                    smartZoom()
+                } else {
+                    lastTapTime = now
+                }
+            } else {
+                modifierDownTime = 0
+                if modifiers != 0 { lastTapTime = 0 }
+            }
+            return false
+        }
+    }
+
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
+
+        if consumeForSmartZoom(type: type, event: event) { return nil }
+        guard acceleratesSpaces else { return Unmanaged.passUnretained(event) }
 
         if type == .keyDown || type == .keyUp {
             let flags = event.flags
