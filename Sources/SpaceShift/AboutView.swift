@@ -5,7 +5,7 @@ import SwiftUI
 
 struct AboutView: View {
     private let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-    private let source = URL(string: "https://github.com/abaicus/SpaceShift")!
+    private let source = URL(string: "https://github.com/abaicus/da-i")!
     private let upstream = URL(string: "https://github.com/ReutS1/SpaceShift")!
     private let license = URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!
 

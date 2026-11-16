@@ -74,6 +74,6 @@ First release of the fork, renamed from SpaceShift to Dă-i.
 - No networking, analytics, updater, or event logging.
 - Optimized and stripped release binary with hardened runtime enabled.
 
-[3.0]: https://github.com/abaicus/SpaceShift/releases/tag/v3.0
+[3.0]: https://github.com/abaicus/da-i/releases/tag/v3.0
 [2.5]: https://github.com/ReutS1/SpaceShift/releases/tag/v2.5
 [2.4]: https://github.com/ReutS1/SpaceShift/releases/tag/v2.4

@@ -10,15 +10,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/abaicus/SpaceShift/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/abaicus/SpaceShift?style=flat-square"></a>
+  <a href="https://github.com/abaicus/da-i/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/abaicus/da-i?style=flat-square"></a>
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-000000?style=flat-square&logo=apple">
   <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/license-GPLv3-blue?style=flat-square"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/abaicus/SpaceShift/releases/download/v3.0/Da-i-3.0.dmg"><strong>Download Dă-i 3.0</strong></a>
+  <a href="https://github.com/abaicus/da-i/releases/download/v3.0/Da-i-3.0.dmg"><strong>Download Dă-i 3.0</strong></a>
   ·
-  <a href="https://github.com/abaicus/SpaceShift/releases">All releases</a>
+  <a href="https://github.com/abaicus/da-i/releases">All releases</a>
 </p>
 
 <p align="center">
@@ -79,7 +79,7 @@ Dă-i keeps running after its window is closed. The menu bar icon opens a small 
 
 ## Installation
 
-1. Download [`Da-i-3.0.dmg`](https://github.com/abaicus/SpaceShift/releases/download/v3.0/Da-i-3.0.dmg).
+1. Download [`Da-i-3.0.dmg`](https://github.com/abaicus/da-i/releases/download/v3.0/Da-i-3.0.dmg).
 2. Open the disk image and drag **Dă-i** to **Applications**.
 3. Launch Dă-i.
 4. Click **Open Settings…**, then switch Dă-i on under **System Settings → Privacy & Security → Accessibility**, or drag the Dă-i tile shown on that window into the list.
@@ -103,8 +103,8 @@ See [SECURITY.md](SECURITY.md) for the release security model and distribution n
 Requirements: macOS 14+, Swift 6-compatible toolchain, and Apple Command Line Tools.
 
 ```sh
-git clone https://github.com/abaicus/SpaceShift.git
-cd SpaceShift
+git clone https://github.com/abaicus/da-i.git
+cd da-i
 ./scripts/build-app.sh release
 open dist/Dă-i.app
 ```
@@ -123,7 +123,7 @@ Focused improvements are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Credits
 
-Dă-i is a fork of [SpaceShift](https://github.com/ReutS1/SpaceShift) by ReutS1.
+Dă-i started as a fork of [SpaceShift](https://github.com/ReutS1/SpaceShift) by ReutS1, and is now developed independently. The Space-switching engine is their work.
 
 The synthetic Dock-swipe technique and empirical velocity values are adapted from jurplel's MIT-licensed [InstantSpaceSwitcher](https://github.com/jurplel/InstantSpaceSwitcher). macOS 27 IOHID payload handling is based on the 0BSD-licensed [iss](https://github.com/joshuarli/iss). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution and bundled third-party licenses.
 
