@@ -14,6 +14,7 @@ struct Tint {
     /// Matches the app icon.
     static let brand = Tint(start: Color(red: 1.0, green: 0.62, blue: 0.10), end: Color(red: 1.0, green: 0.18, blue: 0.42))
     static let zoom = Tint(start: Color(red: 0.30, green: 0.78, blue: 1.0), end: Color(red: 0.25, green: 0.45, blue: 1.0))
+    static let lock = Tint(start: Color(red: 0.78, green: 0.56, blue: 1.0), end: Color(red: 0.48, green: 0.30, blue: 0.92))
     static let awake = Tint(start: Color(red: 0.90, green: 0.66, blue: 0.38), end: Color(red: 0.48, green: 0.26, blue: 0.11))
 }
 

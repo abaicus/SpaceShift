@@ -11,25 +11,44 @@ struct StatusPanel: View {
 
     var body: some View {
         VStack(spacing: Theme.Space.l) {
-            if !controller.hasAccessibilityPermission, controller.showsSpaceSwitching || controller.showsSmartZoom {
+            if !controller.hasAccessibilityPermission, controller.showsSpaceSwitching || controller.showsSmartZoom || controller.showsInputLock {
                 Button("Allow Accessibility access…") { controller.openAccessibilitySettings() }
                     .buttonStyle(PillButtonStyle(tint: .brand, fills: true))
                     .help("Dă-i needs it to see your shortcuts and swipes")
             }
-            if controller.showsSpaceSwitching {
-                row("Space Switching", detail: controller.isEnabled ? controller.approximateMultiplier : nil) {
-                    Toggle("Faster Space switching", isOn: $controller.isEnabled)
-                        .toggleStyle(TintSwitchStyle(tint: .brand))
-                        .help("Turn faster Space switching on or off")
+            ForEach(controller.toolOrder) { tool in
+                switch tool {
+                case .spaceSwitching:
+                    if controller.showsSpaceSwitching {
+                        row("Space Switching", detail: controller.isEnabled ? controller.approximateMultiplier : nil) {
+                            Toggle("Faster Space switching", isOn: $controller.isEnabled)
+                                .toggleStyle(TintSwitchStyle(tint: .brand))
+                                .help("Turn faster Space switching on or off")
+                        }
+                    }
+                case .keepAwake:
+                    if keepAwake.isAvailable {
+                        row("Keep Awake", detail: keepAwake.isActive ? keepAwake.shortStatus : nil) {
+                            Toggle("Keep Awake", isOn: $keepAwake.isActive)
+                                .toggleStyle(TintSwitchStyle(tint: .awake))
+                                .help("Stop the Mac and its display from sleeping")
+                        }
+                        if keepAwake.hasTimedSession {
+                            KeepAwakeTimeButtons(keepAwake: keepAwake, compact: true)
+                        }
+                    }
+                case .inputLock:
+                    if controller.showsInputLock, let shortcut = controller.inputLockShortcut {
+                        row("Input Lock", detail: "\(shortcut.label) unlocks") {
+                            Button("Lock") { controller.lockInput() }
+                                .buttonStyle(PillButtonStyle(tint: .lock))
+                                .disabled(!controller.hasAccessibilityPermission)
+                                .help("Lock the keyboard and mouse now. Press \(shortcut.label) to unlock.")
+                        }
+                    }
+                case .smartZoom:
+                    EmptyView()
                 }
-            }
-            if keepAwake.isAvailable {
-                row("Keep Awake", detail: keepAwake.isActive ? keepAwake.shortStatus : nil) {
-                    Toggle("Keep Awake", isOn: $keepAwake.isActive)
-                        .toggleStyle(TintSwitchStyle(tint: .awake))
-                        .help("Stop the Mac and its display from sleeping")
-                }
-                KeepAwakeTimeButtons(keepAwake: keepAwake, compact: true)
             }
             HStack {
                 Button("Open Dă-i") {

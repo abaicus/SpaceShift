@@ -31,7 +31,7 @@ struct AboutView: View {
                         .foregroundStyle(Theme.tertiary)
                 }
             }
-            Text("Faster Space switching, Smart Zoom from any shortcut, and Keep Awake.")
+            Text("Faster Space switching, Smart Zoom from any shortcut, Keep Awake and Input Lock.")
                 .font(Theme.body)
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)

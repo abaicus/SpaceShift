@@ -44,6 +44,7 @@ NOTARY_PROFILE="da-i-notary" ./scripts/build-dmg.sh
 - `Resources/` — Info.plist and the application icon.
 - `scripts/build-app.sh` — optimized, stripped, hardened application build.
 - `scripts/build-dmg.sh` — drag-to-Applications DMG named after the version in Info.plist, with optional notarization.
+- `scripts/render-cask.sh` — renders `dist/da-i.rb`, the Homebrew cask for the DMG in `dist/`.
 - `scripts/DrawIcon.swift` — draws the application icon master.
 - `scripts/IconBuilder.swift` — builds the icon set and `.icns` from the master.
 - `THIRD_PARTY_NOTICES.md` — required license notice.
@@ -56,6 +57,7 @@ NOTARY_PROFILE="da-i-notary" ./scripts/build-dmg.sh
 3. Build with the Developer ID identity, or ad-hoc if you have none.
 4. Create the DMG, and notarize it if signed with a Developer ID.
 5. Run `codesign --verify --deep --strict` and `hdiutil verify`.
-6. Tag `vX.Y` and publish the DMG with its SHA-256 checksum.
+6. Run `./scripts/render-cask.sh` to render `dist/da-i.rb` for that DMG.
+7. Tag `vX.Y` and publish the DMG with its SHA-256 checksum, with `da-i.rb` attached as a second release asset. [abaicus/homebrew-tap](https://github.com/abaicus/homebrew-tap) copies it within the hour.
 
 Do not put Apple signing certificates, private keys, wallet seed phrases, or notarization credentials into the project directory.

@@ -10,6 +10,8 @@ struct SmartZoomShortcut: Codable, Equatable {
         case key
         /// A key without modifiers, pressed twice quickly.
         case doubleKey
+        /// Two different keys without modifiers, pressed one right after the other.
+        case keySequence
         /// A single modifier tapped twice quickly; `modifiers` holds its bit.
         case doubleModifier
         case mouseButton
@@ -21,6 +23,8 @@ struct SmartZoomShortcut: Codable, Equatable {
     /// Device-independent modifier bits, shared by NSEvent and CGEvent flags.
     var modifiers: UInt64
     var label: String
+    /// The second key of a `keySequence`.
+    var secondCode: Int64?
 
     static let modifierFlags: NSEvent.ModifierFlags = [.control, .option, .shift, .command]
     static let modifierMask = UInt64(modifierFlags.rawValue)
@@ -38,6 +42,18 @@ struct SmartZoomShortcut: Codable, Equatable {
     static func doubleKey(_ event: NSEvent) -> SmartZoomShortcut? {
         guard let name = keyName(event) else { return nil }
         return SmartZoomShortcut(kind: .doubleKey, code: Int64(event.keyCode), modifiers: 0, label: "\(name) \(name)")
+    }
+
+    static func keySequence(first: NSEvent, second: NSEvent) -> SmartZoomShortcut? {
+        guard let firstName = keyName(first), let secondName = keyName(second) else { return nil }
+        return SmartZoomShortcut(
+            kind: .keySequence, code: Int64(first.keyCode), modifiers: 0,
+            label: "\(firstName) \(secondName)", secondCode: Int64(second.keyCode))
+    }
+
+    /// True for keys that produce no text, so a sequence of them cannot fire while typing.
+    static func isNavigationKey(_ keyCode: UInt16) -> Bool {
+        namedKeys[Int64(keyCode)] != nil && ![36, 48, 49, 51, 76].contains(keyCode)
     }
 
     static func doubleModifier(_ flag: NSEvent.ModifierFlags) -> SmartZoomShortcut {
@@ -149,7 +165,7 @@ final class ShortcutRecorder {
         case ignored
     }
 
-    private var pendingKey: (code: UInt16, time: TimeInterval)?
+    private var pendingKey: (event: NSEvent, time: TimeInterval)?
     private var pendingModifier: (flag: NSEvent.ModifierFlags, time: TimeInterval)?
     private var modifierDown: (flag: NSEvent.ModifierFlags, time: TimeInterval)?
     private var previousFlags: NSEvent.ModifierFlags = []
@@ -187,13 +203,21 @@ final class ShortcutRecorder {
             pendingKey = nil
             return .hint("Add ⌃, ⌥ or ⌘, or double-tap a key")
         }
-        if let pendingKey, pendingKey.code == event.keyCode,
-           event.timestamp - pendingKey.time < SmartZoomShortcut.doubleTapInterval,
-           let shortcut = SmartZoomShortcut.doubleKey(event) {
-            return .captured(shortcut)
+        if let pendingKey, event.timestamp - pendingKey.time < SmartZoomShortcut.doubleTapInterval {
+            if pendingKey.event.keyCode == event.keyCode {
+                if let shortcut = SmartZoomShortcut.doubleKey(event) { return .captured(shortcut) }
+            } else if SmartZoomShortcut.isNavigationKey(pendingKey.event.keyCode)
+                        || SmartZoomShortcut.isNavigationKey(event.keyCode) {
+                if let shortcut = SmartZoomShortcut.keySequence(first: pendingKey.event, second: event) {
+                    return .captured(shortcut)
+                }
+            } else {
+                self.pendingKey = (event, event.timestamp)
+                return .hint("Two typing keys would fire while you type. Use ⇞ ⇟ ↖ ↘ or arrows")
+            }
         }
-        pendingKey = (event.keyCode, event.timestamp)
-        return .hint("Press \(name) again quickly, or add ⌃ ⌥ ⌘")
+        pendingKey = (event, event.timestamp)
+        return .hint("Press \(name) again or another key right after, or add ⌃ ⌥ ⌘")
     }
 
     private func handleModifier(_ event: NSEvent) -> Outcome {

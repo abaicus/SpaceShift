@@ -128,6 +128,11 @@ final class KeepAwakeManager: ObservableObject {
         }
     }
 
+    /// False while awake with no end time, or when the switch would start such a session.
+    var hasTimedSession: Bool {
+        isActive ? endDate != nil : duration != .indefinitely
+    }
+
     var canShorten: Bool {
         isActive && endDate != nil
     }

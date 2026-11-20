@@ -189,16 +189,18 @@ struct KeepAwakeSettings: View {
 
     var body: some View {
         VStack(spacing: Theme.Space.l) {
-            KeepAwakeTimeButtons(keepAwake: keepAwake)
+            HStack {
+                Text("The switch keeps it awake for")
+                    .font(Theme.body)
+                    .foregroundStyle(Theme.secondary)
+                Spacer(minLength: Theme.Space.s)
+                KeepAwakeDurationMenu(keepAwake: keepAwake)
+                    .help("How long Keep Awake runs when you turn the switch on")
+            }
+            if keepAwake.hasTimedSession {
+                KeepAwakeTimeButtons(keepAwake: keepAwake)
+            }
             VStack(spacing: Theme.Space.m) {
-                HStack {
-                    Text("The switch keeps it awake for")
-                        .font(Theme.body)
-                        .foregroundStyle(Theme.secondary)
-                    Spacer(minLength: Theme.Space.s)
-                    KeepAwakeDurationMenu(keepAwake: keepAwake)
-                        .help("How long Keep Awake runs when you turn the switch on")
-                }
                 HStack {
                     Text("Stay awake with the lid closed")
                         .font(Theme.body)
@@ -222,7 +224,7 @@ struct PermissionNotice: View {
                 Text("One thing first")
                     .font(Theme.title)
                     .foregroundStyle(Theme.primary)
-                Text("Dă-i needs Accessibility access to see your shortcuts and swipes.")
+                Text("Dă-i needs Accessibility access to see your shortcuts and swipes, and to block input while locked.")
                     .font(Theme.body)
                     .foregroundStyle(Theme.secondary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -69,7 +69,7 @@ struct SpaceShiftApp: App {
         MenuBarExtra {
             StatusPanel(controller: controller, keepAwake: keepAwake)
         } label: {
-            Image(systemName: "chevron.right.2")
+            Image(systemName: controller.isInputLocked ? "lock.fill" : "chevron.right.2")
                 .accessibilityLabel("Dă-i")
         }
         .menuBarExtraStyle(.window)

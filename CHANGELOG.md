@@ -4,6 +4,19 @@ All notable changes to Dă-i (formerly SpaceShift) are documented here.
 
 ## [Unreleased]
 
+## [3.1] - 2026-11-20
+
+### Added
+
+- Input Lock: a shortcut that blocks typing, clicks, scrolling and gestures
+  until it is pressed again, with a banner while locked.
+- Shortcuts can be two keys pressed in a row, such as Page Up then Page Down.
+- The tools can be reordered by dragging them in Settings.
+
+### Changed
+
+- Keep Awake hides the time buttons while it runs indefinitely.
+
 ## [3.0] - 2026-11-17
 
 First release of the fork, renamed from SpaceShift to Dă-i.
@@ -74,6 +87,7 @@ First release of the fork, renamed from SpaceShift to Dă-i.
 - No networking, analytics, updater, or event logging.
 - Optimized and stripped release binary with hardened runtime enabled.
 
+[3.1]: https://github.com/abaicus/da-i/releases/tag/v3.1
 [3.0]: https://github.com/abaicus/da-i/releases/tag/v3.0
 [2.5]: https://github.com/ReutS1/SpaceShift/releases/tag/v2.5
 [2.4]: https://github.com/ReutS1/SpaceShift/releases/tag/v2.4

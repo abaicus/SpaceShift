@@ -11,18 +11,27 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: Theme.Space.l) {
-            if !controller.hasAccessibilityPermission, controller.showsSpaceSwitching || controller.showsSmartZoom {
+            if !controller.hasAccessibilityPermission, controller.showsSpaceSwitching || controller.showsSmartZoom || controller.showsInputLock {
                 PermissionNotice(controller: controller)
             } else if controller.showsSpaceSwitching, let blocker = controller.keyboardBlocker {
                 keyboardNotice(blocker)
             }
-            if controller.showsSpaceSwitching { spaceSwitchingCard }
-            if controller.showsSmartZoom {
-                smartZoomRow
-                    .card(padding: Theme.Space.xl)
+            ForEach(controller.toolOrder) { tool in
+                switch tool {
+                case .spaceSwitching:
+                    if controller.showsSpaceSwitching { spaceSwitchingCard }
+                case .smartZoom:
+                    if controller.showsSmartZoom {
+                        smartZoomRow
+                            .card(padding: Theme.Space.xl)
+                    }
+                case .keepAwake:
+                    if keepAwake.isAvailable { keepAwakeCard }
+                case .inputLock:
+                    if controller.showsInputLock { inputLockCard }
+                }
             }
-            if keepAwake.isAvailable { keepAwakeCard }
-            if !controller.showsSpaceSwitching, !controller.showsSmartZoom, !keepAwake.isAvailable {
+            if !controller.showsSpaceSwitching, !controller.showsSmartZoom, !keepAwake.isAvailable, !controller.showsInputLock {
                 Text("Every tool is switched off. Turn one on in Settings.")
                     .font(Theme.body)
                     .foregroundStyle(Theme.secondary)
@@ -44,7 +53,7 @@ struct ContentView: View {
             .ignoresSafeArea()
         }
         .onAppear { launchAtLogin.refresh() }
-        .onDisappear { controller.stopRecordingSmartZoom() }
+        .onDisappear { controller.stopRecording() }
     }
 
     private func keyboardNotice(_ blocker: String) -> some View {
@@ -130,40 +139,72 @@ struct ContentView: View {
         FeatureHeader(
             symbol: "plus.magnifyingglass", tint: .zoom, title: "Smart Zoom",
             help: "Zooms into the column or image under the pointer, like a two-finger double-tap on a trackpad",
-            status: smartZoomStatus, isOn: controller.smartZoomShortcut != nil || controller.isRecordingSmartZoom
+            status: recordingStatus(.smartZoom),
+            isOn: controller.smartZoomShortcut != nil || controller.isRecordingSmartZoom
         ) {
-            HStack(spacing: Theme.Space.s) {
-                if controller.smartZoomShortcut != nil, !controller.isRecordingSmartZoom {
-                    Button {
-                        controller.smartZoomShortcut = nil
-                    } label: {
-                        Text("Remove")
-                    }
-                    .buttonStyle(PillButtonStyle(quiet: true))
-                    .help("Remove shortcut")
-                    .accessibilityLabel("Remove shortcut")
-                }
-                Button(smartZoomButtonTitle) {
-                    if controller.isRecordingSmartZoom {
-                        controller.stopRecordingSmartZoom()
-                    } else {
-                        controller.startRecordingSmartZoom()
-                    }
-                }
-                .buttonStyle(PillButtonStyle(tint: controller.isRecordingSmartZoom ? .zoom : nil))
-                .help(controller.isRecordingSmartZoom ? "Press Esc to cancel" : "Click, then press the shortcut you want: a key combination, a double-tap, or a mouse button")
-            }
+            shortcutControls(.smartZoom, tint: .zoom, shortcut: $controller.smartZoomShortcut)
         }
     }
 
-    private var smartZoomStatus: String? {
-        guard controller.isRecordingSmartZoom else { return nil }
-        return controller.recordingHint ?? "Press keys, double-tap one, or click a mouse button"
+    private var inputLockCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.xl) {
+            FeatureHeader(
+                symbol: "lock.fill", tint: .lock, title: "Input Lock",
+                help: "Blocks typing, clicks, scrolling and gestures until you press the shortcut again. For when a baby or a cat gets at the keyboard. Locking the screen also releases it.",
+                status: recordingStatus(.inputLock),
+                isOn: controller.inputLockShortcut != nil || controller.isRecordingInputLock
+            ) {
+                shortcutControls(.inputLock, tint: .lock, shortcut: $controller.inputLockShortcut)
+            }
+            if let shortcut = controller.inputLockShortcut, !controller.isRecordingInputLock {
+                HStack {
+                    Text("\(shortcut.label) locks and unlocks")
+                        .font(Theme.body)
+                        .foregroundStyle(Theme.secondary)
+                    Spacer(minLength: Theme.Space.s)
+                    Button {
+                        controller.lockInput()
+                    } label: {
+                        Label("Lock now", systemImage: "lock.fill")
+                    }
+                    .buttonStyle(PillButtonStyle(tint: .lock))
+                    .disabled(!controller.hasAccessibilityPermission)
+                    .help("Lock the keyboard and mouse now. Press \(shortcut.label) to unlock.")
+                }
+            }
+        }
+        .card(padding: Theme.Space.xl)
     }
 
-    private var smartZoomButtonTitle: String {
-        if controller.isRecordingSmartZoom { return "Listening…" }
-        return controller.smartZoomShortcut?.label ?? "Set Shortcut"
+    private func recordingStatus(_ target: MotionController.RecordingTarget) -> String? {
+        guard controller.recordingTarget == target else { return nil }
+        return controller.recordingHint ?? "Press keys, double-tap one, press two in a row, or click a mouse button"
+    }
+
+    private func shortcutControls(
+        _ target: MotionController.RecordingTarget, tint: Tint, shortcut: Binding<SmartZoomShortcut?>
+    ) -> some View {
+        let isRecording = controller.recordingTarget == target
+        return HStack(spacing: Theme.Space.s) {
+            if shortcut.wrappedValue != nil, !isRecording {
+                Button("Remove") { shortcut.wrappedValue = nil }
+                    .buttonStyle(PillButtonStyle(quiet: true))
+                    .help("Remove shortcut")
+            }
+            Button(isRecording ? "Listening…" : (shortcut.wrappedValue?.label ?? "Set Shortcut")) {
+                if isRecording {
+                    controller.stopRecording()
+                } else {
+                    controller.stopRecording()
+                    switch target {
+                    case .smartZoom: controller.startRecordingSmartZoom()
+                    case .inputLock: controller.startRecordingInputLock()
+                    }
+                }
+            }
+            .buttonStyle(PillButtonStyle(tint: isRecording ? tint : nil))
+            .help(isRecording ? "Press Esc to cancel" : "Click, then press the shortcut you want: a key combination, a double-tap, two keys in a row, or a mouse button")
+        }
     }
 
     private var footer: some View {

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Faster Space switching, Smart Zoom from any shortcut, and Keep Awake for macOS.</strong><br>
+  <strong>Faster Space switching, Smart Zoom from any shortcut, Keep Awake and Input Lock for macOS.</strong><br>
   <em>Dă-i înainte cu tupeu.</em>
 </p>
 
@@ -16,16 +16,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/abaicus/da-i/releases/download/v3.0/Da-i-3.0.dmg"><strong>Download Dă-i 3.0</strong></a>
+  <a href="https://github.com/abaicus/da-i/releases/download/v3.1/Da-i-3.1.dmg"><strong>Download Dă-i 3.1</strong></a>
   ·
   <a href="https://github.com/abaicus/da-i/releases">All releases</a>
 </p>
 
 <p align="center">
-  <img src="docs/images/da-i-window.png" width="540" alt="The Dă-i window with its three tools: Space Switching, Smart Zoom and Keep Awake">
+  <img src="docs/images/da-i-window.png" width="540" alt="The Dă-i window with its four tools: Space Switching, Smart Zoom, Keep Awake and Input Lock">
 </p>
 
-Dă-i is a small native menu bar app with three tools. Each one can be switched off in Settings, which stops it and hides it.
+Dă-i is a small native menu bar app with four tools. Each one can be switched off in Settings, which stops it and hides it.
 
 ## Tools
 
@@ -46,6 +46,7 @@ Click **Set Shortcut**, then do one of the following:
 - press a key combination that includes `Control`, `Option` or `Command`, or a bare function key;
 - double-tap a modifier, such as `Control` twice;
 - double-tap any key, such as `Z` twice (the first press is still typed);
+- two keys in a row, such as `Page Up` then `Page Down` (at least one must be a navigation key);
 - click a middle or side mouse button.
 
 Shortcuts that macOS or apps already use, such as `Command + Q`, are refused. `Esc` cancels recording.
@@ -59,6 +60,18 @@ Stops the Mac and its display from sleeping.
 - Optionally stays awake with the lid closed.
 - Always starts switched off when Dă-i launches.
 
+### Input Lock
+
+Blocks the keyboard and mouse buttons so a baby or a cat can hammer away without typing or clicking anything.
+
+- Record a shortcut; pressing it locks, pressing it again unlocks. **Lock now** in the window or the menu bar panel also locks.
+- While locked, key presses, clicks, scrolling, trackpad gestures and media keys are swallowed. The pointer still moves.
+- A banner at the top of the screen shows the shortcut that unlocks, and the menu bar icon turns into a padlock.
+- Locking the screen or putting the Mac to sleep always releases the lock.
+- It cannot block the power/Touch ID button, or typing into a password field of an app that has Secure Input switched on.
+
+<img src="docs/images/da-i-lock-banner.png" width="330" alt="The banner shown while Input Lock is on">
+
 ## Menu bar and settings
 
 <p align="center">
@@ -66,9 +79,9 @@ Stops the Mac and its display from sleeping.
   <img src="docs/images/da-i-settings.png" width="460" alt="The Settings window, where each tool can be switched off">
 </p>
 
-Dă-i keeps running after its window is closed. The menu bar icon opens a small panel with the Space Switching and Keep Awake switches and the Keep Awake time chips. The app shows in the Dock and Command-Tab only while one of its windows is open.
+Dă-i keeps running after its window is closed. The menu bar icon opens a small panel with the Space Switching and Keep Awake switches, the Keep Awake time chips and a Lock button. The app shows in the Dock and Command-Tab only while one of its windows is open.
 
-**Settings** (`Command + ,`) switches individual tools off and sets **Open at login**.
+**Settings** (`Command + ,`) switches individual tools off, reorders them by dragging, and sets **Open at login**.
 
 ## Requirements
 
@@ -79,7 +92,15 @@ Dă-i keeps running after its window is closed. The menu bar icon opens a small 
 
 ## Installation
 
-1. Download [`Da-i-3.0.dmg`](https://github.com/abaicus/da-i/releases/download/v3.0/Da-i-3.0.dmg).
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask abaicus/tap/da-i
+```
+
+Then launch Dă-i and continue from step 4. Or install it by hand:
+
+1. Download [`Da-i-3.1.dmg`](https://github.com/abaicus/da-i/releases/download/v3.1/Da-i-3.1.dmg).
 2. Open the disk image and drag **Dă-i** to **Applications**.
 3. Launch Dă-i.
 4. Click **Open Settings…**, then switch Dă-i on under **System Settings → Privacy & Security → Accessibility**, or drag the Dă-i tile shown on that window into the list.

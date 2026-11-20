@@ -3,6 +3,7 @@
 import ApplicationServices
 import Carbon.HIToolbox
 import AppKit
+import SwiftUI
 import Foundation
 
 @MainActor
@@ -35,11 +36,33 @@ final class MotionController: ObservableObject {
     @Published var showsSmartZoom: Bool {
         didSet {
             storage.set(showsSmartZoom, forKey: showsZoomKey)
-            if !showsSmartZoom { stopRecordingSmartZoom() }
+            if !showsSmartZoom, recordingTarget == .smartZoom { stopRecording() }
             configureEngine()
         }
     }
-    @Published private(set) var isRecordingSmartZoom = false
+    /// The order of the tools in the window, the menu bar panel and Settings.
+    @Published var toolOrder: [Tool] {
+        didSet { storage.set(toolOrder.map(\.rawValue), forKey: toolOrderKey) }
+    }
+    @Published var showsInputLock: Bool {
+        didSet {
+            storage.set(showsInputLock, forKey: showsLockKey)
+            if !showsInputLock, recordingTarget == .inputLock { stopRecording() }
+            configureEngine()
+        }
+    }
+    @Published var inputLockShortcut: SmartZoomShortcut? {
+        didSet {
+            configureEngine()
+            storage.set(inputLockShortcut.flatMap { try? JSONEncoder().encode($0) }, forKey: inputLockKey)
+        }
+    }
+    @Published private(set) var isInputLocked = false
+    enum RecordingTarget { case smartZoom, inputLock }
+    @Published private(set) var recordingTarget: RecordingTarget?
+    var isRecordingSmartZoom: Bool { recordingTarget == .smartZoom }
+    var isRecordingInputLock: Bool { recordingTarget == .inputLock }
+    private var isTapRunning = false
     @Published private(set) var recordingHint: String?
     @Published private(set) var hasAccessibilityPermission = false
     @Published private(set) var isRunning = false
@@ -54,6 +77,10 @@ final class MotionController: ObservableObject {
     private let smartZoomKey = "smartZoomShortcut"
     private let showsSpaceKey = "toolSpaceSwitching"
     private let showsZoomKey = "toolSmartZoom"
+    private let showsLockKey = "toolInputLock"
+    private let toolOrderKey = "toolOrder"
+    private let inputLockKey = "inputLockShortcut"
+    private let lockOverlay = LockOverlay()
     private var permissionTimer: Timer?
     private var secureInputTimer: Timer?
     private var recordingMonitor: Any?
@@ -65,11 +92,32 @@ final class MotionController: ObservableObject {
         isEnabled = storage.object(forKey: enabledKey) as? Bool ?? true
         showsSpaceSwitching = storage.object(forKey: showsSpaceKey) as? Bool ?? true
         showsSmartZoom = storage.object(forKey: showsZoomKey) as? Bool ?? true
+        showsInputLock = storage.object(forKey: showsLockKey) as? Bool ?? true
+        let savedOrder = (storage.stringArray(forKey: toolOrderKey) ?? []).compactMap(Tool.init(rawValue:))
+        toolOrder = savedOrder + Tool.allCases.filter { !savedOrder.contains($0) }
+        inputLockShortcut = storage.data(forKey: inputLockKey)
+            .flatMap { try? JSONDecoder().decode(SmartZoomShortcut.self, from: $0) }
+            .flatMap { $0.conflict == nil ? $0 : nil }
         smartZoomShortcut = storage.data(forKey: smartZoomKey)
             .flatMap { try? JSONDecoder().decode(SmartZoomShortcut.self, from: $0) }
             .flatMap { $0.conflict == nil ? $0 : nil }
         engine.velocity = speed
         engine.smartZoomShortcut = showsSmartZoom ? smartZoomShortcut : nil
+        engine.onLockChange = { [weak self] locked in
+            MainActor.assumeIsolated { self?.inputLockChanged(locked) }
+        }
+        // Locking the screen or sleeping releases Input Lock, so there is always a way out.
+        let workspace = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification] {
+            workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.unlockInput() }
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.unlockInput() }
+        }
         refreshPermission()
         if !hasAccessibilityPermission { startPermissionPolling() }
         refreshSecureInput()
@@ -123,11 +171,15 @@ final class MotionController: ObservableObject {
     }
 
     /// Captures the next shortcut, double-tap or extra mouse button pressed in one of the app's windows.
-    func startRecordingSmartZoom() {
+    func startRecordingSmartZoom() { startRecording(.smartZoom) }
+    func startRecordingInputLock() { startRecording(.inputLock) }
+
+    private func startRecording(_ target: RecordingTarget) {
         guard recordingMonitor == nil else { return }
         // Otherwise the event tap would swallow the current shortcut before it can be re-recorded.
         engine.smartZoomShortcut = nil
-        isRecordingSmartZoom = true
+        engine.inputLockShortcut = nil
+        recordingTarget = target
         recordingHint = nil
         // A menu bar app's window can be clicked without becoming key, and then sees no key presses.
         NSApp.activate(ignoringOtherApps: true)
@@ -140,12 +192,21 @@ final class MotionController: ObservableObject {
                 guard let self else { return }
                 switch recorder.handle(event) {
                 case .captured(let shortcut):
-                    self.stopRecordingSmartZoom()
-                    self.smartZoomShortcut = shortcut
+                    let other = target == .smartZoom ? self.inputLockShortcut : self.smartZoomShortcut
+                    if shortcut == other {
+                        let owner = target == .smartZoom ? "Input Lock" : "Smart Zoom"
+                        self.recordingHint = "\(shortcut.label) is already used for \(owner)"
+                        return
+                    }
+                    self.stopRecording()
+                    switch target {
+                    case .smartZoom: self.smartZoomShortcut = shortcut
+                    case .inputLock: self.inputLockShortcut = shortcut
+                    }
                 case .hint(let hint):
                     self.recordingHint = hint
                 case .cancelled:
-                    self.stopRecordingSmartZoom()
+                    self.stopRecording()
                 case .ignored:
                     break
                 }
@@ -154,12 +215,41 @@ final class MotionController: ObservableObject {
         }
     }
 
-    func stopRecordingSmartZoom() {
+    func stopRecordingSmartZoom() { stopRecording() }
+
+    func stopRecording() {
         if let recordingMonitor { NSEvent.removeMonitor(recordingMonitor) }
         recordingMonitor = nil
-        isRecordingSmartZoom = false
+        recordingTarget = nil
         recordingHint = nil
-        engine.smartZoomShortcut = showsSmartZoom ? smartZoomShortcut : nil
+        configureEngine()
+    }
+
+    /// Locks the keyboard and mouse buttons until the Input Lock shortcut is pressed.
+    func lockInput() {
+        guard showsInputLock, inputLockShortcut != nil, isTapRunning else { return }
+        engine.isLocked = true
+        inputLockChanged(true)
+    }
+
+    func moveTool(_ tool: Tool, to index: Int) {
+        guard let from = toolOrder.firstIndex(of: tool), toolOrder.indices.contains(index), from != index else { return }
+        toolOrder.move(fromOffsets: IndexSet(integer: from), toOffset: index > from ? index + 1 : index)
+    }
+
+    func unlockInput() {
+        guard isInputLocked else { return }
+        engine.isLocked = false
+        inputLockChanged(false)
+    }
+
+    private func inputLockChanged(_ locked: Bool) {
+        isInputLocked = locked
+        if locked, let shortcut = inputLockShortcut {
+            lockOverlay.show(unlockWith: shortcut.label)
+        } else {
+            lockOverlay.hide()
+        }
     }
 
     private func refreshSecureInput() {
@@ -180,18 +270,24 @@ final class MotionController: ObservableObject {
 
     private func configureEngine() {
         guard hasAccessibilityPermission else {
-            engine.stop()
-            isRunning = false
+            stopEngine()
             message = "Accessibility permission required"
             return
         }
         let accelerates = isEnabled && showsSpaceSwitching
         let zoomShortcut = showsSmartZoom ? smartZoomShortcut : nil
-        if !isRecordingSmartZoom { engine.smartZoomShortcut = zoomShortcut }
-        // Smart Zoom shares the event tap, so it keeps running while Space switching is off.
-        guard accelerates || zoomShortcut != nil else {
-            engine.stop()
-            isRunning = false
+        let lockShortcut = showsInputLock ? inputLockShortcut : nil
+        if recordingTarget == nil {
+            engine.smartZoomShortcut = zoomShortcut
+            engine.inputLockShortcut = lockShortcut
+        }
+        if lockShortcut == nil, engine.isLocked {
+            engine.isLocked = false
+            inputLockChanged(false)
+        }
+        // The shortcuts share the event tap, so it keeps running while Space switching is off.
+        guard accelerates || zoomShortcut != nil || lockShortcut != nil else {
+            stopEngine()
             message = "Paused"
             return
         }
@@ -199,8 +295,16 @@ final class MotionController: ObservableObject {
         engine.velocity = speed
         engine.acceleratesSpaces = accelerates
         let tapRunning = engine.start()
+        isTapRunning = tapRunning
         isRunning = tapRunning && accelerates
         message = tapRunning ? (accelerates ? "Active" : "Paused") : "Event interception failed"
+    }
+
+    private func stopEngine() {
+        engine.stop()
+        isRunning = false
+        isTapRunning = false
+        if isInputLocked { inputLockChanged(false) }
     }
 
     private func startPermissionPolling() {
